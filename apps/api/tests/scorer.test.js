@@ -1,17 +1,19 @@
-process.env.ANTHROPIC_API_KEY = 'test_key';
+process.env.GEMINI_API_KEY = 'test_key';
 const { scoreLeadMessage } = require('../services/scorer');
 
 // Mock global fetch so we don't make real network calls in tests
 global.fetch = jest.fn((url, options) => {
-  if (url === 'https://api.anthropic.com/v1/messages') {
+  if (url.includes('generativelanguage.googleapis.com')) {
     const body = JSON.parse(options.body);
-    const content = body.messages[0].content.toLowerCase();
+    const content = body.contents[0].parts[0].text.toLowerCase();
     
+    const wrap = (text) => ({ candidates: [{ content: { parts: [{ text }] } }] });
+
     // 1. Fake intent
     if (content.includes('score: hello') || content.includes('score: price?')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ content: [{ text: '{"score": 2, "tag": "fake", "reason": "No clear intent", "signals": []}' }] })
+        json: () => Promise.resolve(wrap('{"score": 2, "tag": "fake", "reason": "No clear intent", "signals": []}'))
       });
     }
     
@@ -19,7 +21,7 @@ global.fetch = jest.fn((url, options) => {
     if (content.includes('score: koi acchi car hai')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ content: [{ text: '{"score": 5, "tag": "warm", "reason": "Vague interest", "signals": []}' }] })
+        json: () => Promise.resolve(wrap('{"score": 5, "tag": "warm", "reason": "Vague interest", "signals": []}'))
       });
     }
 
@@ -28,7 +30,7 @@ global.fetch = jest.fn((url, options) => {
         content.includes('score: honda city 2022, 8 lakh budget, buying this week')) {
       return Promise.resolve({
         ok: true,
-        json: () => Promise.resolve({ content: [{ text: '{"score": 9, "tag": "hot", "reason": "High intent with specifics", "signals": ["budget", "model"]}' }] })
+        json: () => Promise.resolve(wrap('{"score": 9, "tag": "hot", "reason": "High intent with specifics", "signals": ["budget", "model"]}'))
       });
     }
 
@@ -44,7 +46,7 @@ global.fetch = jest.fn((url, options) => {
     // Default fallback
     return Promise.resolve({
       ok: true,
-      json: () => Promise.resolve({ content: [{ text: '{"score": 5, "tag": "warm", "reason": "default", "signals": []}' }] })
+      json: () => Promise.resolve(wrap('{"score": 5, "tag": "warm", "reason": "default", "signals": []}'))
     });
   }
   return Promise.resolve({ ok: false });

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { mockLeads } from '@/lib/mock-data';
+import { useLeads } from '@/hooks/useLeads';
 import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import LeadCard from '@/components/leads/LeadCard';
@@ -12,7 +12,7 @@ import LeadDetail from '@/components/leads/LeadDetail';
 import EmptyState from '@/components/leads/EmptyState';
 
 export default function LeadsPage() {
-  const [leads, setLeads] = useState(mockLeads);
+  const { leads, loading, updateLeadStatus, markAsRead } = useLeads();
   const [selectedLead, setSelectedLead] = useState(null);
   const [activeFilter, setActiveFilter] = useState('all');
   const [activePlatform, setActivePlatform] = useState('all');
@@ -72,16 +72,12 @@ export default function LeadsPage() {
     setSelectedLead(lead);
     // Mark as read
     if (!lead.is_read) {
-      setLeads((prev) =>
-        prev.map((l) => (l.id === lead.id ? { ...l, is_read: true } : l))
-      );
+      markAsRead(lead.id);
     }
   };
 
   const handleStatusChange = (leadId, newStatus) => {
-    setLeads((prev) =>
-      prev.map((l) => (l.id === leadId ? { ...l, status: newStatus } : l))
-    );
+    updateLeadStatus(leadId, newStatus);
     if (selectedLead?.id === leadId) {
       setSelectedLead((prev) => ({ ...prev, status: newStatus }));
     }
@@ -146,7 +142,12 @@ export default function LeadsPage() {
 
           {/* Lead list */}
           <div className="flex-1 overflow-y-auto fade-stagger">
-            {filteredLeads.length === 0 ? (
+            {loading ? (
+              <div className="flex flex-col items-center justify-center h-full space-y-4">
+                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <p className="text-sm text-text-muted">Loading live leads...</p>
+              </div>
+            ) : filteredLeads.length === 0 ? (
               <EmptyState
                 type={leads.length === 0 ? 'no-leads' : 'no-results'}
               />

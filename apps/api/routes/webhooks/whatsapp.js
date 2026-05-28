@@ -1,105 +1,76 @@
 // ============================================================
-// WhatsApp Webhook Routes
-// Handles Meta webhook verification and incoming messages
+// Twilio WhatsApp Webhook Routes
+// Handles Twilio webhook verification and incoming messages
 // ============================================================
 
 const express = require('express');
-const crypto = require('crypto');
+const twilio = require('twilio');
 const router = express.Router();
 const { supabase, isMockMode } = require('../../lib/supabase');
 const { mockLeads, mockMessages } = require('../../data/mockLeads');
 const { scoreLeadMessage } = require('../../services/scorer');
 const { notifyHotLead } = require('../../services/notification');
 
-const VERIFY_TOKEN = process.env.WEBHOOK_VERIFY_TOKEN || 'carleads_verify_token';
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
 
-// ── GET — Meta webhook verification ────────────────────────
-router.get('/', (req, res) => {
-  const mode = req.query['hub.mode'];
-  const token = req.query['hub.verify_token'];
-  const challenge = req.query['hub.challenge'];
-
-  if (mode === 'subscribe' && token === VERIFY_TOKEN) {
-    console.log('✅ WhatsApp webhook verified');
-    return res.status(200).send(challenge);
-  }
-
-  console.warn('❌ WhatsApp webhook verification failed');
-  return res.sendStatus(403);
-});
+// Add urlencoded parser specifically for Twilio webhooks
+router.use(express.urlencoded({ extended: true }));
 
 // ── POST — Incoming message handler ────────────────────────
 router.post('/', async (req, res) => {
   try {
-    // Verify signature if token is set
-    if (WHATSAPP_TOKEN && req.headers['x-hub-signature-256']) {
-      const signature = req.headers['x-hub-signature-256'];
+    // Validate request signature from Twilio
+    if (TWILIO_AUTH_TOKEN && req.headers['x-twilio-signature']) {
+      const twilioSignature = req.headers['x-twilio-signature'];
+      // e.g. https://my-domain.ngrok-free.app/api/v1/webhooks/whatsapp
+      const url = `${req.protocol}://${req.get('host')}${req.originalUrl}`;
       
-      // Use rawBody if available, otherwise fallback to stringified body
-      const payload = req.rawBody ? req.rawBody : JSON.stringify(req.body);
-      
-      const expectedSignature =
-        'sha256=' +
-        crypto
-          .createHmac('sha256', WHATSAPP_TOKEN)
-          .update(payload)
-          .digest('hex');
+      const isValid = twilio.validateRequest(
+        TWILIO_AUTH_TOKEN,
+        twilioSignature,
+        url,
+        req.body
+      );
 
-      if (signature !== expectedSignature) {
-        console.warn('⚠️  Invalid WhatsApp webhook signature');
-        return res.sendStatus(403);
+      if (!isValid) {
+        console.warn('⚠️  Invalid Twilio webhook signature');
+        return res.status(403).send('Invalid signature');
       }
     }
 
-    // Always return 200 immediately after security checks
-    res.status(200).send('EVENT_RECEIVED');
+    const { From, Body, MessageSid, ProfileName } = req.body;
 
-    const body = req.body;
-
-    // Validate it's a WhatsApp messages webhook
-    if (body.object !== 'whatsapp_business_account') return;
-
-    const entries = body.entry || [];
-    for (const entry of entries) {
-      const changes = entry.changes || [];
-      for (const change of changes) {
-        if (change.field !== 'messages') continue;
-
-        const value = change.value;
-        const messages = value.messages || [];
-        const contacts = value.contacts || [];
-
-        for (const message of messages) {
-          // Only handle text messages for now
-          if (message.type !== 'text') continue;
-
-          const senderPhone = message.from;
-          const messageText = message.text?.body || '';
-          const messageId = message.id;
-          const timestamp = message.timestamp;
-
-          // Get sender name from contacts
-          const contact = contacts.find((c) => c.wa_id === senderPhone);
-          const senderName = contact?.profile?.name || 'Unknown';
-
-          console.log(`📩 WhatsApp message from ${senderName} (${senderPhone}): ${messageText.substring(0, 50)}`);
-
-          // Process the message
-          await _processIncomingMessage({
-            platform: 'whatsapp',
-            senderName,
-            senderPhone: `+${senderPhone}`,
-            senderHandle: null,
-            messageText,
-            externalMessageId: messageId,
-            timestamp: timestamp ? new Date(parseInt(timestamp) * 1000).toISOString() : new Date().toISOString(),
-          });
-        }
-      }
+    if (!From || !Body) {
+      return res.status(400).send('Missing required fields');
     }
+
+    // Twilio sends From as "whatsapp:+1234567890"
+    const senderPhone = From.replace('whatsapp:', '');
+    const messageText = Body;
+    const messageId = MessageSid;
+    const senderName = ProfileName || 'Unknown';
+    const timestamp = new Date().toISOString();
+
+    console.log(`📩 WhatsApp message from ${senderName} (${senderPhone}): ${messageText.substring(0, 50)}`);
+
+    // Process the message
+    await _processIncomingMessage({
+      platform: 'whatsapp',
+      senderName,
+      senderPhone,
+      senderHandle: null,
+      messageText,
+      externalMessageId: messageId,
+      timestamp,
+    });
+
+    // Twilio expects a TwiML response (even an empty one)
+    const MessagingResponse = twilio.twiml.MessagingResponse;
+    const twiml = new MessagingResponse();
+    res.type('text/xml').send(twiml.toString());
   } catch (err) {
-    console.error('WhatsApp webhook processing error:', err);
+    console.error('Twilio webhook processing error:', err);
+    res.status(500).send('Internal Server Error');
   }
 });
 

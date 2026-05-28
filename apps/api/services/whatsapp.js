@@ -1,56 +1,53 @@
 // ============================================================
-// WhatsApp Cloud API Service
-// Sends messages via Meta Cloud API
+// Twilio WhatsApp API Service
+// Sends messages via Twilio API
 // Falls back to console logging in mock mode
 // ============================================================
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_TOKEN;
-const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
+const twilio = require('twilio');
+
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
+
+let twilioClient = null;
+if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+  twilioClient = twilio(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN);
+}
 
 /**
- * Send a WhatsApp text message via Meta Cloud API
+ * Send a WhatsApp text message via Twilio API
  * @param {string} phone - Recipient phone number (with country code)
  * @param {string} text - Message text
  * @returns {{ success: boolean, messageId?: string, error?: string }}
  */
 async function sendMessage(phone, text) {
-  if (!WHATSAPP_TOKEN || !WHATSAPP_PHONE_NUMBER_ID) {
-    console.log(`📱 [MOCK WhatsApp] To: ${phone}`);
+  if (!twilioClient || !TWILIO_WHATSAPP_FROM) {
+    console.log(`📱 [MOCK Twilio WhatsApp] To: ${phone}`);
     console.log(`   Message: ${text}`);
     return { success: true, messageId: `mock_${Date.now()}`, mock: true };
   }
 
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/v18.0/${WHATSAPP_PHONE_NUMBER_ID}/messages`,
-      {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${WHATSAPP_TOKEN}`,
-        },
-        body: JSON.stringify({
-          messaging_product: 'whatsapp',
-          to: phone.replace(/[^0-9]/g, ''),
-          type: 'text',
-          text: { body: text },
-        }),
-      }
-    );
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      console.error('WhatsApp API error:', data);
-      return { success: false, error: data.error?.message || 'Unknown error' };
+    // Format the to number properly for Twilio WhatsApp
+    // Assuming the phone string already has country code, e.g. "919876543210"
+    let formattedPhone = phone.replace(/[^0-9+]/g, '');
+    if (!formattedPhone.startsWith('+')) {
+      formattedPhone = '+' + formattedPhone;
     }
+
+    const message = await twilioClient.messages.create({
+      body: text,
+      from: TWILIO_WHATSAPP_FROM,
+      to: `whatsapp:${formattedPhone}`
+    });
 
     return {
       success: true,
-      messageId: data.messages?.[0]?.id || null,
+      messageId: message.sid,
     };
   } catch (err) {
-    console.error('WhatsApp send failed:', err.message);
+    console.error('Twilio send failed:', err.message);
     return { success: false, error: err.message };
   }
 }

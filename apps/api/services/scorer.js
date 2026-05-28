@@ -4,10 +4,10 @@
 // Falls back to keyword-based scoring when API key is unavailable
 // ============================================================
 
-const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
 
 /**
- * Score a lead message using Claude AI or keyword-based fallback
+ * Score a lead message using Gemini AI or keyword-based fallback
  * @param {string} messageText - The message from the potential buyer
  * @returns {{ score: number, tag: string, reason: string, signals: string[] }}
  */
@@ -16,12 +16,12 @@ async function scoreLeadMessage(messageText) {
     return { score: 1, tag: 'fake', reason: 'Empty message', signals: ['empty_message'] };
   }
 
-  // If Anthropic API key is configured, use Claude
-  if (ANTHROPIC_API_KEY) {
+  // If Gemini API key is configured, use Gemini
+  if (GEMINI_API_KEY) {
     try {
-      return await _scoreWithClaude(messageText);
+      return await _scoreWithGemini(messageText);
     } catch (err) {
-      console.error('Claude scoring failed, using fallback:', err.message);
+      console.error('Gemini scoring failed, using fallback:', err.message);
       return _scoreWithKeywords(messageText);
     }
   }
@@ -31,27 +31,14 @@ async function scoreLeadMessage(messageText) {
 }
 
 /**
- * Score using Claude API
+ * Score using Gemini API
  */
-async function _scoreWithClaude(messageText) {
+async function _scoreWithGemini(messageText) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 3000);
 
   try {
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        max_tokens: 200,
-        messages: [
-          {
-            role: 'user',
-            content: `You are an AI lead scorer for an Indian used car dealer. Analyze this customer message and rate their buying intent.
+    const scoringPrompt = `You are an AI lead scorer for an Indian used car dealer. Analyze this customer message and rate their buying intent.
 
 Message: "${messageText}"
 
@@ -69,24 +56,33 @@ The message may be in Hinglish (Hindi+English mix). Look for signals like:
 - Location mentions (city names)
 
 Respond ONLY with valid JSON:
-{"score": <number>, "tag": "<hot|warm|fake>", "reason": "<one line explanation>", "signals": ["signal1", "signal2"]}`,
-          },
-        ],
-      }),
-      signal: controller.signal,
-    });
+{"score": <number>, "tag": "<hot|warm|fake>", "reason": "<one line explanation>", "signals": ["signal1", "signal2"]}`;
+
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          contents: [{ parts: [{ text: scoringPrompt }] }],
+          generationConfig: { maxOutputTokens: 200 }
+        }),
+        signal: controller.signal,
+      }
+    );
 
     clearTimeout(timeout);
 
     if (!response.ok) {
-      throw new Error(`Claude API returned ${response.status}`);
+      throw new Error(`Gemini API returned ${response.status}`);
     }
 
     const data = await response.json();
-    const text = data.content[0].text.trim();
+    const text = data.candidates[0].content.parts[0].text.trim();
+    const cleanText = text.replace(/```json/gi, '').replace(/```/gi, '').trim();
 
     // Parse the JSON response
-    const result = JSON.parse(text);
+    const result = JSON.parse(cleanText);
 
     // Validate and normalize
     const score = Math.min(10, Math.max(1, Math.round(result.score)));
@@ -104,7 +100,7 @@ Respond ONLY with valid JSON:
   } catch (err) {
     clearTimeout(timeout);
     if (err.name === 'AbortError') {
-      console.warn('Claude API timed out after 3s');
+      console.warn('Gemini API timed out after 3s');
     }
     // Fallback on any error
     return { score: 5, tag: 'warm', reason: 'AI scoring unavailable', signals: [] };

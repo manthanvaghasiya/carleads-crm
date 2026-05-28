@@ -6,10 +6,10 @@
 const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
-const { supabase, isMockMode } = require('../lib/supabase');
-const { mockLeads, mockMessages } = require('../data/mockLeads');
-const { scoreLeadMessage } = require('../services/scorer');
-const { notifyHotLead } = require('../services/notification');
+const { supabase, isMockMode } = require('../../lib/supabase');
+const { mockLeads, mockMessages } = require('../../data/mockLeads');
+const { scoreLeadMessage } = require('../../services/scorer');
+const { notifyHotLead } = require('../../services/notification');
 
 const VERIFY_TOKEN = process.env.INSTAGRAM_VERIFY_TOKEN || 'carleads_verify_token';
 const INSTAGRAM_APP_SECRET = process.env.INSTAGRAM_APP_SECRET;

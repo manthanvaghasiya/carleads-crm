@@ -1,28 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600;700&family=Fira+Sans:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
 /* ============================================
    CarLeads CRM — Design System
-   Dark mode only • DM Sans + DM Mono
+   Dark mode (OLED) • Fira Sans + Fira Code
    ============================================ */
 
 /* ── Tailwind v4 Theme Tokens ── */
 @theme inline {
   /* Colors */
-  --color-background: #0F1117;
-  --color-surface: #1A1D27;
-  --color-surface-hover: #22252F;
-  --color-surface-active: #2A2D37;
-  --color-border: #2A2D37;
-  --color-border-light: #353842;
+  --color-background: #050505; /* OLED Black */
+  --color-surface: #1E293B; /* Slate 800 */
+  --color-surface-hover: #334155; /* Slate 700 */
+  --color-surface-active: #475569; /* Slate 600 */
+  --color-border: #334155;
+  --color-border-light: #475569;
 
-  --color-text-primary: #F1F3F5;
-  --color-text-secondary: #8B8F9A;
-  --color-text-muted: #5C6070;
+  --color-text-primary: #F8FAFC;
+  --color-text-secondary: #94A3B8;
+  --color-text-muted: #64748B;
 
-  --color-primary: #6C5CE7;
-  --color-primary-hover: #7C6DF7;
-  --color-primary-muted: rgba(108, 92, 231, 0.15);
+  --color-primary: #DC2626; /* Action Red */
+  --color-primary-hover: #EF4444;
+  --color-primary-muted: rgba(220, 38, 38, 0.15);
 
   --color-hot: #00D26A;
   --color-hot-bg: rgba(0, 210, 106, 0.12);
@@ -34,7 +34,7 @@
   --color-whatsapp: #25D366;
   --color-instagram: #E1306C;
   --color-olx: #FF6E14;
-  --color-manual: #6C5CE7;
+  --color-manual: #DC2626;
 
   --color-success: #00D26A;
   --color-warning: #F5A623;
@@ -42,8 +42,8 @@
   --color-info: #4DA6FF;
 
   /* Fonts */
-  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
-  --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+  --font-sans: 'Fira Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'Fira Code', 'JetBrains Mono', monospace;
 
   /* Radii */
   --radius-sm: 6px;
@@ -53,10 +53,10 @@
   --radius-pill: 9999px;
 
   /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
-  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 4px 6px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 10px 15px rgba(0, 0, 0, 0.5), 0 4px 6px rgba(0, 0, 0, 0.4);
   --shadow-glow-hot: 0 0 20px rgba(0, 210, 106, 0.15);
-  --shadow-glow-primary: 0 0 20px rgba(108, 92, 231, 0.2);
+  --shadow-glow-primary: 0 0 20px rgba(220, 38, 38, 0.2);
 
   /* Animations */
   --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
