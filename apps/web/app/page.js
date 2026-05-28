@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Users, Flame, ArrowUpRight, ShieldAlert,
   MessageCircle, Camera as Instagram, PenLine, TrendingUp, ExternalLink,
@@ -10,7 +10,6 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts';
 import { cn, timeAgo } from '@/lib/utils';
-import { mockLeads, mockStats } from '@/lib/mock-data';
 import AppShell from '@/components/layout/AppShell';
 import Header from '@/components/layout/Header';
 import ScoreBadge from '@/components/leads/ScoreBadge';
@@ -88,21 +87,102 @@ function CustomTooltip({ active, payload, label }) {
   );
 }
 
+import { useLeads } from '@/hooks/useLeads';
+import { Loader2 } from 'lucide-react';
+
 export default function DashboardPage() {
-  const { overview, byPlatform, scoreDistribution, weekly } = mockStats;
+  const { leads, loading } = useLeads();
 
-  // Get follow-up leads (not contacted in 24 hours)
-  const followUpLeads = mockLeads
-    .filter((l) => {
-      const age = Date.now() - new Date(l.created_at).getTime();
-      return l.status === 'new' && l.ai_tag !== 'fake' && age > 3600000;
-    })
-    .slice(0, 3);
+  const { overview, byPlatform, scoreDistribution, weekly, followUpLeads, recentHotLeads } = useMemo(() => {
+    // 1. Overview
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
 
-  const recentHotLeads = mockLeads
-    .filter((l) => l.ai_tag === 'hot')
-    .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-    .slice(0, 5);
+    const leadsToday = leads.filter(l => new Date(l.created_at) >= today);
+    const hotLeadsToday = leadsToday.filter(l => l.ai_score >= 7);
+    
+    const leadsWithAction = leads.filter(l => l.status !== 'new');
+    const responseRate = leads.length > 0 ? Math.round((leadsWithAction.length / leads.length) * 100) : 0;
+    
+    const fakeLeads = leads.filter(l => l.ai_score <= 3 || l.ai_tag === 'fake');
+    const fakePercentage = leads.length > 0 ? Math.round((fakeLeads.length / leads.length) * 100) : 0;
+
+    const overview = {
+      totalLeadsToday: leadsToday.length,
+      hotLeadsToday: hotLeadsToday.length,
+      responseRate,
+      fakePercentage
+    };
+
+    // 2. By Platform
+    const byPlatform = [
+      { platform: 'WhatsApp', count: leads.filter(l => l.platform === 'whatsapp').length, color: '#00D26A' },
+      { platform: 'Instagram', count: leads.filter(l => l.platform === 'instagram').length, color: '#E1306C' }
+    ].filter(p => p.count > 0);
+    
+    // Fallback if empty so chart doesn't break
+    if (byPlatform.length === 0) byPlatform.push({ platform: 'No Data', count: 1, color: '#2A2D37' });
+
+    // 3. Score Distribution
+    const scoreDistribution = [
+      { range: '1-3 (Fake)', count: fakeLeads.length, color: '#FF3B30' },
+      { range: '4-6 (Warm)', count: leads.filter(l => l.ai_score >= 4 && l.ai_score <= 6).length, color: '#FF9500' },
+      { range: '7-10 (Hot)', count: leads.filter(l => l.ai_score >= 7 || l.ai_tag === 'hot').length, color: '#00D26A' }
+    ];
+
+    // 4. Weekly Trend (Last 7 days)
+    const weeklyMap = {};
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const dayStr = d.toLocaleDateString('en-US', { weekday: 'short' });
+      weeklyMap[dayStr] = { day: dayStr, leads: 0, hot: 0 };
+    }
+    
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    sevenDaysAgo.setHours(0, 0, 0, 0);
+    
+    leads.forEach(l => {
+      const date = new Date(l.created_at);
+      if (date >= sevenDaysAgo) {
+        const dayStr = date.toLocaleDateString('en-US', { weekday: 'short' });
+        if (weeklyMap[dayStr]) {
+          weeklyMap[dayStr].leads++;
+          if (l.ai_score >= 7 || l.ai_tag === 'hot') weeklyMap[dayStr].hot++;
+        }
+      }
+    });
+    
+    const weekly = Object.values(weeklyMap);
+
+    // 5. Follow-up Leads
+    const followUpLeads = leads
+      .filter((l) => {
+        const age = Date.now() - new Date(l.created_at).getTime();
+        return l.status === 'new' && l.ai_tag !== 'fake' && age > 3600000;
+      })
+      .slice(0, 3);
+
+    // 6. Recent Hot Leads
+    const recentHotLeads = leads
+      .filter((l) => l.ai_score >= 7 || l.ai_tag === 'hot')
+      .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+      .slice(0, 5);
+
+    return { overview, byPlatform, scoreDistribution, weekly, followUpLeads, recentHotLeads };
+  }, [leads]);
+
+  if (loading) {
+    return (
+      <AppShell>
+        <Header title="Dashboard" subtitle="Shree Motors • Surat" />
+        <div className="flex-1 flex items-center justify-center p-4">
+          <Loader2 className="animate-spin text-primary w-8 h-8" />
+        </div>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell>

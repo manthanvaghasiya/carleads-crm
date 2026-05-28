@@ -105,7 +105,13 @@ async function _processIncomingMessage({
   externalMessageId,
   timestamp,
 }) {
-  const dealerId = 'demo-dealer-1';
+  // For MVP, get the most recently created dealer
+  const { data: dealers } = await supabase
+    .from('dealers')
+    .select('id')
+    .order('created_at', { ascending: false })
+    .limit(1);
+  const dealerId = dealers?.[0]?.id || '3769eed5-e4f7-443a-bc72-b2e9e1e9b779';
 
   if (isMockMode) {
     // Check idempotency
@@ -200,13 +206,12 @@ async function _processIncomingMessage({
     return;
   }
 
+  // Create message
   const { error: msgError } = await supabase.from('lead_messages').insert({
     lead_id: lead.id,
     direction: 'inbound',
-    content: messageText,
-    sender_name: senderName,
-    platform,
-    external_message_id: externalMessageId,
+    message_text: messageText,
+    platform_message_id: externalMessageId,
   });
 
   if (msgError) {

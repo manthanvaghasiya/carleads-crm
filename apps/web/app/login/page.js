@@ -1,26 +1,63 @@
 'use client';
 
 import { useState } from 'react';
-import { Shield, KeyRound, Mail, ArrowRight, Loader2, Phone } from 'lucide-react';
+import { Shield, KeyRound, Mail, Loader2 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
   const router = useRouter();
-  const [method, setMethod] = useState('phone'); // 'phone' | 'email'
+  const supabase = createClient();
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  const [successMsg, setSuccessMsg] = useState(null);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
-    // Mock Supabase Auth behavior
-    setTimeout(() => {
+    setErrorMsg(null);
+    setSuccessMsg(null);
+
+    try {
+      if (isSignUp) {
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        
+        if (data?.user?.identities?.length === 0) {
+           setErrorMsg('This email is already registered. Please sign in.');
+        } else {
+           setSuccessMsg('Success! If email confirmation is enabled in Supabase, please check your inbox. Otherwise, you can sign in now.');
+           // If auto sign-in works, we will be redirected. If not, they must check email.
+           if (data.session) {
+             router.push('/leads');
+             router.refresh();
+           }
+        }
+      } else {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (error) throw error;
+        
+        if (data.session) {
+          router.push('/leads');
+          router.refresh();
+        }
+      }
+    } catch (err) {
+      setErrorMsg(err.message || 'An error occurred during authentication.');
+    } finally {
       setLoading(false);
-      setSent(true);
-      setTimeout(() => {
-        router.push('/');
-      }, 1500);
-    }, 1500);
+    }
   };
 
   return (
@@ -46,81 +83,97 @@ export default function LoginPage() {
         {/* Login Card */}
         <div className="card p-6 md:p-8 shadow-elevated border-border">
           <h2 className="text-xl font-semibold text-text-primary mb-2 text-center">
-            Welcome back
+            {isSignUp ? 'Create an Account' : 'Welcome back'}
           </h2>
           <p className="text-sm text-text-muted text-center mb-8">
-            Sign in to access your leads and dashboard
+            {isSignUp ? 'Sign up to manage your dealership leads' : 'Sign in to access your leads and dashboard'}
           </p>
 
-          {/* Toggle Phone/Email */}
+          {/* Toggle SignIn/SignUp */}
           <div className="flex bg-surface-hover rounded-lg p-1 mb-6 border border-border">
             <button
-              onClick={() => setMethod('phone')}
+              onClick={() => { setIsSignUp(false); setErrorMsg(null); setSuccessMsg(null); }}
+              type="button"
               className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                method === 'phone'
+                !isSignUp
                   ? 'bg-surface shadow text-text-primary'
                   : 'text-text-muted hover:text-text-primary'
               }`}
             >
-              <Phone size={14} /> Phone
+              Sign In
             </button>
             <button
-              onClick={() => setMethod('email')}
+              onClick={() => { setIsSignUp(true); setErrorMsg(null); setSuccessMsg(null); }}
+              type="button"
               className={`flex-1 flex items-center justify-center gap-2 py-2 text-sm font-medium rounded-md transition-colors ${
-                method === 'email'
+                isSignUp
                   ? 'bg-surface shadow text-text-primary'
                   : 'text-text-muted hover:text-text-primary'
               }`}
             >
-              <Mail size={14} /> Email
+              Sign Up
             </button>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
-                {method === 'phone' ? 'Phone Number' : 'Email Address'}
+                Email Address
               </label>
               <div className="relative">
-                {method === 'phone' ? (
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted text-sm">
-                    +91
-                  </span>
-                ) : (
-                  <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
-                )}
+                <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
                 <input
-                  type={method === 'phone' ? 'tel' : 'email'}
-                  placeholder={method === 'phone' ? '99999 99999' : 'dealer@example.com'}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="dealer@example.com"
                   required
-                  className={`w-full bg-surface-hover border border-border rounded-lg py-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors ${
-                    method === 'phone' ? 'pl-10 pr-3 font-mono-numbers' : 'pl-10 pr-3'
-                  }`}
+                  className="w-full bg-surface-hover border border-border rounded-lg py-3 pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label className="block text-xs font-medium text-text-muted mb-1.5 uppercase tracking-wider">
+                Password
+              </label>
+              <div className="relative">
+                <KeyRound size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" />
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="••••••••"
+                  required
+                  minLength={6}
+                  className="w-full bg-surface-hover border border-border rounded-lg py-3 pl-10 pr-3 text-sm text-text-primary placeholder:text-text-muted focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary/30 transition-colors"
                 />
               </div>
             </div>
 
+            {errorMsg && (
+              <div className="p-3 bg-fake-bg/50 border border-fake/20 rounded-lg text-fake text-xs font-medium">
+                {errorMsg}
+              </div>
+            )}
+            
+            {successMsg && (
+              <div className="p-3 bg-hot-bg/50 border border-hot/20 rounded-lg text-hot text-xs font-medium">
+                {successMsg}
+              </div>
+            )}
+
             <button
               type="submit"
-              disabled={loading || sent}
+              disabled={loading}
               className="w-full flex items-center justify-center gap-2 py-3 rounded-lg bg-primary text-white text-sm font-semibold hover:bg-primary-hover shadow-glow-primary transition-all disabled:opacity-70 disabled:cursor-not-allowed mt-2"
             >
               {loading ? (
-                <>
-                  <Loader2 size={16} className="animate-spin" />
-                  Sending magic link...
-                </>
-              ) : sent ? (
-                <>
-                  <Shield size={16} />
-                  Login successful
-                </>
+                <Loader2 size={16} className="animate-spin" />
               ) : (
-                <>
-                  <KeyRound size={16} />
-                  Send Magic Link
-                </>
+                <Shield size={16} />
               )}
+              {isSignUp ? 'Create Account' : 'Sign In'}
             </button>
           </form>
 

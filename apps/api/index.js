@@ -51,14 +51,15 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-// ── Routes ─────────────────────────────────────────────────
 const leadsRouter = require('./routes/leads');
 const statsRouter = require('./routes/stats');
+const settingsRouter = require('./routes/settings');
 const whatsappWebhook = require('./routes/webhooks/whatsapp');
 const instagramWebhook = require('./routes/webhooks/instagram');
 
 app.use('/api/v1/leads', leadsRouter);
 app.use('/api/v1/stats', statsRouter);
+app.use('/api/v1/settings', settingsRouter);
 app.use('/api/v1/webhooks/whatsapp', whatsappWebhook);
 app.use('/api/v1/webhooks/instagram', instagramWebhook);
 

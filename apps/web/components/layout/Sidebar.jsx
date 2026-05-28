@@ -10,8 +10,11 @@ import {
   Zap,
   ChevronLeft,
   ChevronRight,
+  LogOut,
 } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 const NAV_ITEMS = [
   { href: '/', label: 'Dashboard', icon: LayoutDashboard },
@@ -24,7 +27,15 @@ const NAV_ITEMS = [
  */
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
+  const supabase = createClient();
   const [collapsed, setCollapsed] = useState(false);
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+    router.refresh();
+  };
 
   return (
     <aside
@@ -82,8 +93,16 @@ export default function Sidebar() {
         })}
       </nav>
 
-      {/* Collapse toggle */}
-      <div className="p-3 border-t border-border">
+      {/* Collapse toggle and Logout */}
+      <div className="p-3 border-t border-border space-y-2">
+        <button
+          onClick={handleLogout}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-fake hover:text-white hover:bg-fake/20 transition-colors"
+          title={collapsed ? "Logout" : undefined}
+        >
+          <LogOut size={16} />
+          {!collapsed && <span>Logout</span>}
+        </button>
         <button
           onClick={() => setCollapsed(!collapsed)}
           className="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-sm text-text-muted hover:text-text-secondary hover:bg-surface-hover transition-colors"

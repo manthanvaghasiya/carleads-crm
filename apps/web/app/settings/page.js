@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import {
   User, Store, Phone, MapPin, MessageCircle, Camera as Instagram,
-  Bell, BellOff, Users, Lock, Check, X, ExternalLink, ChevronRight,
+  Bell, BellOff, Users, Lock, Check, X, ExternalLink, ChevronRight, Plug, RefreshCw, Send, Bot
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { mockDealer } from '@/lib/mock-data';
@@ -39,7 +39,7 @@ function Toggle({ enabled, onChange, label, description }) {
 }
 
 // ── Connection Status ──
-function ConnectionCard({ platform, connected, icon: Icon, color, onConnect }) {
+function ConnectionCard({ platform, connected, icon: Icon, color, subtext }) {
   return (
     <div className="card p-4 flex items-center justify-between">
       <div className="flex items-center gap-3">
@@ -65,18 +65,19 @@ function ConnectionCard({ platform, connected, icon: Icon, color, onConnect }) {
               {connected ? 'Connected' : 'Not connected'}
             </span>
           </div>
+          {subtext && <p className="text-xs text-text-muted mt-1">{subtext}</p>}
         </div>
       </div>
       <button
-        onClick={onConnect}
+        disabled
         className={cn(
-          'px-4 py-2 rounded-lg text-sm font-medium transition-colors',
+          'px-4 py-2 rounded-lg text-sm font-medium transition-colors opacity-80 cursor-default',
           connected
-            ? 'bg-surface-hover text-text-secondary hover:bg-surface-active'
-            : 'bg-primary text-white hover:bg-primary-hover'
+            ? 'bg-surface-hover text-text-secondary'
+            : 'bg-primary text-white'
         )}
       >
-        {connected ? 'Manage' : 'Connect'}
+        {connected ? 'Active' : 'Configure via .env'}
       </button>
     </div>
   );
@@ -85,6 +86,47 @@ function ConnectionCard({ platform, connected, icon: Icon, color, onConnect }) {
 export default function SettingsPage() {
   const [dealer, setDealer] = useState(mockDealer);
   const [saved, setSaved] = useState(false);
+  const [integrations, setIntegrations] = useState(null);
+  const [simulating, setSimulating] = useState(false);
+
+  useEffect(() => {
+    // Fetch integration status
+    const fetchStatus = async () => {
+      try {
+        const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+        const res = await fetch(`${apiUrl}/api/v1/settings/integrations`);
+        if (res.ok) {
+          const data = await res.json();
+          setIntegrations(data);
+          updateField('whatsapp_connected', data.whatsapp?.connected);
+        }
+      } catch (err) {
+        console.error('Failed to fetch integrations', err);
+      }
+    };
+    fetchStatus();
+  }, []);
+
+  const handleSimulate = async () => {
+    setSimulating(true);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      await fetch(`${apiUrl}/api/v1/settings/simulate-lead`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: 'Hi, I am looking for a used Honda City. Do you have any in stock?',
+          senderName: 'Test Customer',
+          senderPhone: '+19876543210'
+        })
+      });
+      alert('Simulated lead sent! Check your Lead Inbox.');
+    } catch (err) {
+      alert('Failed to simulate lead: ' + err.message);
+    } finally {
+      setSimulating(false);
+    }
+  };
 
   const handleSave = () => {
     setSaved(true);
@@ -93,6 +135,21 @@ export default function SettingsPage() {
 
   const updateField = (field, value) => {
     setDealer((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleAIToggle = async (enabled) => {
+    updateField('ai_bot_enabled', enabled);
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
+      await fetch(`${apiUrl}/api/v1/settings/ai-bot`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // Send cookies for authMiddleware
+        body: JSON.stringify({ enabled })
+      });
+    } catch (err) {
+      console.error('Failed to update AI setting', err);
+    }
   };
 
   return (
@@ -208,32 +265,64 @@ export default function SettingsPage() {
           </h2>
           <div className="space-y-3">
             <ConnectionCard
-              platform="WhatsApp Business"
+              platform="Twilio WhatsApp Sandbox"
               connected={dealer.whatsapp_connected}
               icon={MessageCircle}
               color="#25D366"
-              onConnect={() => updateField('whatsapp_connected', !dealer.whatsapp_connected)}
+              subtext={integrations?.whatsapp?.phoneNumber ? `Active Number: ${integrations.whatsapp.phoneNumber}` : 'No active number'}
             />
             <ConnectionCard
               platform="Instagram"
-              connected={dealer.instagram_connected}
+              connected={false}
               icon={Instagram}
               color="#E1306C"
-              onConnect={() => updateField('instagram_connected', !dealer.instagram_connected)}
+              subtext="Instagram API keys not configured"
             />
           </div>
 
+          {/* Simulate inbound lead */}
+          <div className="mt-4 flex items-center justify-between card p-4 border-dashed border-primary/30 bg-primary-muted/10">
+            <div>
+              <p className="text-sm font-medium text-text-primary">Simulate Inbound Lead</p>
+              <p className="text-xs text-text-muted mt-1">Send a test message locally without exposing your webhook to the internet via ngrok.</p>
+            </div>
+            <button
+              onClick={handleSimulate}
+              disabled={simulating}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-white text-sm font-medium hover:bg-primary-hover transition-colors shadow-glow-primary"
+            >
+              {simulating ? <RefreshCw className="animate-spin" size={16} /> : <Send size={16} />}
+              {simulating ? 'Sending...' : 'Send Test Lead'}
+            </button>
+          </div>
+
           {/* Setup Guide */}
-          <div className="card p-4 mt-3 border-dashed">
+          <div className="card p-4 mt-4 border-dashed">
             <p className="text-xs text-text-muted mb-2 font-medium">
-              WhatsApp Setup Guide:
+              Twilio WhatsApp Sandbox Setup Guide:
             </p>
             <ol className="text-xs text-text-muted space-y-1 list-decimal list-inside">
-              <li>Create a Meta Developer account at developers.facebook.com</li>
-              <li>Set up a WhatsApp Business API app</li>
-              <li>Get your Phone Number ID and Access Token</li>
-              <li>Set the webhook URL to your API endpoint</li>
+              <li>Log into your Twilio Console and navigate to Messaging &gt; Try it out &gt; Send a WhatsApp message.</li>
+              <li>Activate your Sandbox by sending the join code to the Twilio number.</li>
+              <li>Go to Sandbox settings and paste your API URL (<code>https://&lt;your-domain&gt;/api/v1/webhooks/whatsapp</code>) into the "When a message comes in" field.</li>
+              <li>Ensure the HTTP method is set to <strong>POST</strong> and save.</li>
             </ol>
+          </div>
+        </section>
+
+        {/* ── AI Capabilities ── */}
+        <section className="mb-8">
+          <h2 className="text-sm font-semibold text-text-secondary uppercase tracking-wider mb-4 flex items-center gap-2">
+            <Bot size={14} />
+            AI Capabilities
+          </h2>
+          <div className="card p-5">
+            <Toggle
+              enabled={dealer.ai_bot_enabled !== false}
+              onChange={handleAIToggle}
+              label="AI Auto-Reply (Raj)"
+              description="Automatically qualify incoming WhatsApp leads using Gemini before alerting you."
+            />
           </div>
         </section>
 

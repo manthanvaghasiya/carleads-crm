@@ -6,9 +6,9 @@
 
 const twilio = require('twilio');
 
-const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID;
-const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN;
-const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM;
+const TWILIO_ACCOUNT_SID = process.env.TWILIO_ACCOUNT_SID?.trim();
+const TWILIO_AUTH_TOKEN = process.env.TWILIO_AUTH_TOKEN?.trim();
+const TWILIO_WHATSAPP_FROM = process.env.TWILIO_WHATSAPP_FROM?.trim();
 
 let twilioClient = null;
 if (TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {

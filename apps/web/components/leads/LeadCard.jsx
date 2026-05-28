@@ -3,7 +3,7 @@
 import { cn, timeAgo, truncate, formatPhone } from '@/lib/utils';
 import ScoreBadge from './ScoreBadge';
 import PlatformIcon from './PlatformIcon';
-import { Eye, EyeOff, ExternalLink } from 'lucide-react';
+import { Eye, EyeOff, ExternalLink, Bot } from 'lucide-react';
 
 /**
  * LeadCard — Individual lead card in the inbox list
@@ -66,27 +66,38 @@ export default function LeadCard({ lead, isSelected, onClick }) {
       {/* Bottom row: Status + Phone/Handle + Actions */}
       <div className="flex items-center justify-between pl-4">
         <div className="flex items-center gap-2">
-          {/* Status badge */}
-          <span
-            className={cn(
-              'text-xs px-2 py-0.5 rounded-full font-medium',
-              lead.status === 'new' && 'bg-primary-muted text-primary',
-              lead.status === 'contacted' && 'bg-hot-bg text-hot',
-              lead.status === 'follow_up' && 'bg-warm-bg text-warm',
-              lead.status === 'converted' && 'bg-hot-bg text-hot',
-              lead.status === 'lost' && 'bg-fake-bg text-fake'
-            )}
-          >
-            {lead.status === 'new'
-              ? 'New'
-              : lead.status === 'contacted'
-                ? 'Contacted'
-                : lead.status === 'follow_up'
-                  ? 'Follow Up'
-                  : lead.status === 'converted'
-                    ? 'Converted'
-                    : 'Lost'}
-          </span>
+          {lead.auto_reply_active ? (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-primary-muted text-primary border border-primary/20 flex items-center gap-1">
+              <Bot size={12} />
+              AI Qualifying...
+            </span>
+          ) : lead.auto_reply_count > 0 ? (
+            <span className="text-xs px-2 py-0.5 rounded-full font-medium bg-hot-bg text-hot border border-hot/20 flex items-center gap-1">
+              <Bot size={12} />
+              Ready for dealer
+            </span>
+          ) : (
+            <span
+              className={cn(
+                'text-xs px-2 py-0.5 rounded-full font-medium',
+                lead.status === 'new' && 'bg-primary-muted text-primary',
+                lead.status === 'contacted' && 'bg-hot-bg text-hot',
+                lead.status === 'follow_up' && 'bg-warm-bg text-warm',
+                lead.status === 'converted' && 'bg-hot-bg text-hot',
+                lead.status === 'lost' && 'bg-fake-bg text-fake'
+              )}
+            >
+              {lead.status === 'new'
+                ? 'New'
+                : lead.status === 'contacted'
+                  ? 'Contacted'
+                  : lead.status === 'follow_up'
+                    ? 'Follow Up'
+                    : lead.status === 'converted'
+                      ? 'Converted'
+                      : 'Lost'}
+            </span>
+          )}
 
           {/* Contact info */}
           {lead.sender_phone && (

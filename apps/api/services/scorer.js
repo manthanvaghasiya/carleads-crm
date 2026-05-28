@@ -35,7 +35,7 @@ async function scoreLeadMessage(messageText) {
  */
 async function _scoreWithGemini(messageText) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 3000);
+  const timeout = setTimeout(() => controller.abort(), 15000);
 
   try {
     const scoringPrompt = `You are an AI lead scorer for an Indian used car dealer. Analyze this customer message and rate their buying intent.
@@ -59,13 +59,13 @@ Respond ONLY with valid JSON:
 {"score": <number>, "tag": "<hot|warm|fake>", "reason": "<one line explanation>", "signals": ["signal1", "signal2"]}`;
 
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+      `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           contents: [{ parts: [{ text: scoringPrompt }] }],
-          generationConfig: { maxOutputTokens: 200 }
+          generationConfig: { maxOutputTokens: 1000 }
         }),
         signal: controller.signal,
       }
