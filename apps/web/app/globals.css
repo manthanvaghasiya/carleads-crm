@@ -1,0 +1,239 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400;1,500&display=swap');
+@import "tailwindcss";
+
+/* ============================================
+   CarLeads CRM — Design System
+   Dark mode only • DM Sans + DM Mono
+   ============================================ */
+
+/* ── Tailwind v4 Theme Tokens ── */
+@theme inline {
+  /* Colors */
+  --color-background: #0F1117;
+  --color-surface: #1A1D27;
+  --color-surface-hover: #22252F;
+  --color-surface-active: #2A2D37;
+  --color-border: #2A2D37;
+  --color-border-light: #353842;
+
+  --color-text-primary: #F1F3F5;
+  --color-text-secondary: #8B8F9A;
+  --color-text-muted: #5C6070;
+
+  --color-primary: #6C5CE7;
+  --color-primary-hover: #7C6DF7;
+  --color-primary-muted: rgba(108, 92, 231, 0.15);
+
+  --color-hot: #00D26A;
+  --color-hot-bg: rgba(0, 210, 106, 0.12);
+  --color-warm: #F5A623;
+  --color-warm-bg: rgba(245, 166, 35, 0.12);
+  --color-fake: #FF4757;
+  --color-fake-bg: rgba(255, 71, 87, 0.12);
+
+  --color-whatsapp: #25D366;
+  --color-instagram: #E1306C;
+  --color-olx: #FF6E14;
+  --color-manual: #6C5CE7;
+
+  --color-success: #00D26A;
+  --color-warning: #F5A623;
+  --color-danger: #FF4757;
+  --color-info: #4DA6FF;
+
+  /* Fonts */
+  --font-sans: 'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'DM Mono', 'JetBrains Mono', monospace;
+
+  /* Radii */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-pill: 9999px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.3), 0 1px 2px rgba(0, 0, 0, 0.2);
+  --shadow-elevated: 0 4px 20px rgba(0, 0, 0, 0.4), 0 2px 8px rgba(0, 0, 0, 0.3);
+  --shadow-glow-hot: 0 0 20px rgba(0, 210, 106, 0.15);
+  --shadow-glow-primary: 0 0 20px rgba(108, 92, 231, 0.2);
+
+  /* Animations */
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Base Styles ── */
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-background);
+  color: var(--color-text-primary);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  line-height: 1.6;
+}
+
+/* ── Scrollbar Styling ── */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: var(--radius-pill);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-border-light);
+}
+
+/* ── Score Badge Variants ── */
+.score-hot {
+  background: var(--color-hot-bg);
+  color: var(--color-hot);
+  border: 1px solid rgba(0, 210, 106, 0.2);
+}
+
+.score-warm {
+  background: var(--color-warm-bg);
+  color: var(--color-warm);
+  border: 1px solid rgba(245, 166, 35, 0.2);
+}
+
+.score-fake {
+  background: var(--color-fake-bg);
+  color: var(--color-fake);
+  border: 1px solid rgba(255, 71, 87, 0.2);
+}
+
+/* ── Platform Badge Colors ── */
+.platform-whatsapp {
+  color: var(--color-whatsapp);
+}
+
+.platform-instagram {
+  color: var(--color-instagram);
+}
+
+.platform-olx {
+  color: var(--color-olx);
+}
+
+/* ── Card Styles ── */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  transition: all 0.2s var(--ease-smooth);
+}
+
+.card:hover {
+  background: var(--color-surface-hover);
+  border-color: var(--color-border-light);
+}
+
+.card-elevated {
+  box-shadow: var(--shadow-card);
+}
+
+/* ── Glass Effect ── */
+.glass {
+  background: rgba(26, 29, 39, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(42, 45, 55, 0.5);
+}
+
+/* ── Animated Counter ── */
+@keyframes countUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animate-count-up {
+  animation: countUp 0.6s var(--ease-spring) forwards;
+}
+
+/* ── Pulse Dot (for notifications) ── */
+@keyframes pulse-dot {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.5); }
+}
+
+.pulse-dot {
+  animation: pulse-dot 2s ease-in-out infinite;
+}
+
+/* ── Slide In Animation ── */
+@keyframes slideInRight {
+  from { transform: translateX(100%); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+.slide-in-right {
+  animation: slideInRight 0.3s var(--ease-smooth) forwards;
+}
+
+@keyframes slideInUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.slide-in-up {
+  animation: slideInUp 0.4s var(--ease-spring) forwards;
+}
+
+/* ── Fade In Stagger ── */
+@keyframes fadeInStagger {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.fade-stagger > * {
+  opacity: 0;
+  animation: fadeInStagger 0.3s var(--ease-smooth) forwards;
+}
+
+.fade-stagger > *:nth-child(1) { animation-delay: 0.05s; }
+.fade-stagger > *:nth-child(2) { animation-delay: 0.1s; }
+.fade-stagger > *:nth-child(3) { animation-delay: 0.15s; }
+.fade-stagger > *:nth-child(4) { animation-delay: 0.2s; }
+.fade-stagger > *:nth-child(5) { animation-delay: 0.25s; }
+.fade-stagger > *:nth-child(6) { animation-delay: 0.3s; }
+.fade-stagger > *:nth-child(7) { animation-delay: 0.35s; }
+.fade-stagger > *:nth-child(8) { animation-delay: 0.4s; }
+.fade-stagger > *:nth-child(9) { animation-delay: 0.45s; }
+.fade-stagger > *:nth-child(10) { animation-delay: 0.5s; }
+
+/* ── Focus Styles ── */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* ── Selection ── */
+::selection {
+  background: var(--color-primary-muted);
+  color: var(--color-text-primary);
+}
+
+/* ── Number Display ── */
+.font-mono-numbers {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
